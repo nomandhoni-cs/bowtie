@@ -47,6 +47,10 @@
       font-size: 0.8rem;
   }
 
+  {# Schema Display styles  #}
+  #schema-card{
+    display: none;
+  }
 
 </style>
 
@@ -213,14 +217,26 @@
           {% endif %}
         </div>
       </div>
+      {# Schema Display Card  #}
+      <div class="card mx-auto mb-3 w-75" id="schema-card">
+          <div class="card-header">Schema</div>
+          <div class="card-body">
+              <div id="schema-display">
+                     {# JSON code goes here #}
+              </div>
+          <hr>
+          <div class="btn btn-primary" id="copy-button" onclick="copySchemaFromCard()">Copy</div>
+          <div class="btn btn-primary float-right" id="close-button" onClick="closeSchemaCard()">Close</div>
+          </div>
+      </div>
 
       <div class="accordion pt-5" id="cases">
         {% for seq, description, schema, results in summary.case_results() %}
           <div class="accordion-item">
 
             <h2 class="accordion-header" id="case-{{ seq }}-heading">
-              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#case-{{ seq }}" aria-expanded="false" aria-controls="case-{{ seq }}">
-                <a href="#" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title='<pre>{{ schema | tojson(indent=2) }}</pre>'>
+              <button class="accordion-button collapsed" onclick='schemaDisplay(`<code><pre>{{ schema | tojson(indent=2) }}</pre></code>`)' type="button" data-bs-toggle="collapse" data-bs-target="#case-{{ seq }}" aria-expanded="false" aria-controls="case-{{ seq }}">
+                <a href="#schema" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title='<pre>{{ schema | tojson(indent=2) }}</pre>'>
                   {{ description }}
                 </a>
               </button>
@@ -235,7 +251,7 @@
                       {% for implementation in summary.implementations %}
                         <td class="text-center" scope="col">
                           {{ implementation.name }}
-                          <small class="text-muted">{{ implementation.language }}</small>
+                          <small class="text-muted" onclick="consoleFunction(`{{ implementation.language }}`)">{{ implementation.language }}</small>
                         </td>
                       {% endfor %}
                     </tr>
@@ -244,8 +260,8 @@
                   {% for test, test_results in results %}
                     <tr>
                       <td>
-                        <a href="#" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title='<pre>{{ test.instance | tojson(indent=2) }}</pre>'>{{ test.description }}</a>
-                      </td>
+                        <a href="#schema" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title='<pre>{{ test.instance | tojson(indent=2) }}</pre>' onclick='schemaDisplay(`<code><pre>{{ test.instance | tojson(indent=2) }}</pre></code>`)'>{{ test.description }}</a>
+                      </td>'
                       {% for implementation in summary.implementations %}
                         {% set implementation_result, incorrect = test_results.get(implementation.image, ({"valid": None}, True)) %}
                         {% if incorrect == "skipped" %}
@@ -347,7 +363,35 @@
       const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
       const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
     </script>
-
+    <!-- Schema Display -->
+    <script>
+      const schemabox = document.getElementById('schema-display')
+      {# Schema Display  #}
+      function schemaDisplay(schema) {
+        {# Display the schema block when clicked  #}
+        document.getElementById('schema-card').style.display = 'block';
+        schemabox.innerHTML = schema;
+        {# Reseting the copy Button  #}
+        document.getElementById("copy-button").innerText = "Copy";
+        {# console.log(schema) #}
+      }
+      {# Close Schema Card  #}
+      function closeSchemaCard(){
+        document.getElementById('schema-card').style.display = 'none';
+      }
+      function copySchemaFromCard(){
+        const textToCopy = document.getElementById("schema-display").innerText;
+        const tempElement = document.createElement("textarea");
+        tempElement.value = textToCopy;
+        document.body.appendChild(tempElement);
+        tempElement.select();
+        tempElement.setSelectionRange(0, 99999); 
+        document.execCommand("copy");
+        document.body.removeChild(tempElement);
+        {# Change the Copy Button  #}
+        document.getElementById("copy-button").innerText = "Copied";
+      }
+    </script>
     <script>
       var ago = (Date.now() - Date.parse("{{ run_info.started }}")) / 1000;
       var agoUnits = 'seconds';
